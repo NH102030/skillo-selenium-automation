@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Skillo Automation Suite">
+
+<listeners>
+    <listener class-name="skillo.automation.listeners.ScreenshotListener" />
+</listeners>
+
+<test name="Regression Tests">
+    <classes>
+        <class name="skillo.automation.LoginTests"/>
+        <class name="skillo.automation.PostTests"/>
+        <class name="skillo.automation.ProfileTests"/>
+        <class name="skillo.automation.HomeTests"/>
+    </classes>
+</test>
+
+</suite>
