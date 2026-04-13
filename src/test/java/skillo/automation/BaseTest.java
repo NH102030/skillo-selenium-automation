@@ -1,11 +1,15 @@
 package skillo.automation;
 
-import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 
 /**
@@ -14,41 +18,46 @@ import java.time.Duration;
  */
 public class BaseTest {
 
-    // CHANGE: Must be public so ScreenshotListener can access it
     public WebDriver driver;
 
-    /**
-     * Initial setup before running the tests in the class.
-     * Uses @BeforeClass to open the browser only once for the entire test suite.
-     */
+    @BeforeSuite(alwaysRun = true)
+    public void cleanScreenshotsDirectory() {
+        Path screenshotsDir = Paths.get("src/test/resources/screenshots");
+
+        try {
+            Files.createDirectories(screenshotsDir);
+
+            Files.list(screenshotsDir)
+                    .filter(Files::isRegularFile)
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Failed to delete screenshot: " + path, e);
+                        }
+                    });
+
+            System.out.println(">>> Old screenshots deleted before test suite.");
+        } catch (IOException e) {
+            throw new RuntimeException("Could not clean screenshots directory.", e);
+        }
+    }
+
     @BeforeClass
     public void setUp() {
-         // 1. Automatic ChromeDriver setup according to your browser version
-        WebDriverManager.chromedriver().setup();
 
-        // 2. Initialize a new Chrome browser
         driver = new ChromeDriver();
-
-        // 3. Maximize the browser window
         driver.manage().window().maximize();
-
-        // 4. Set timeout for the page load (HTML itself)
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(20));
 
         System.out.println(">>> Driver initialized. Ready for Explicit Wait testing.");
     }
 
-    /**
-     * runs once after all tests in the class, regardless of success or failure.
-     * Cleanup method to close the browser after all tests in the class are finished.
-     */
     @AfterClass(alwaysRun = true)
     public void tearDown() {
-        // 5. Close all windows and release resources
         if (driver != null) {
             driver.quit();
             System.out.println("<<< Driver closed and session ended.");
         }
     }
-
 }

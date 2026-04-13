@@ -7,14 +7,17 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.FindAll;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+
 import java.util.List;
 
 /**
  * Home page represented with the Page Factory pattern.
  */
 public class HomePage extends BasePage {
+
     // Relative URL for the home page
     private static final String HOME_URL = "/posts/all";
+
     /**
      * Navigation links collected with @FindAll.
      */
@@ -32,7 +35,7 @@ public class HomePage extends BasePage {
     private WebElement logoutButton;
 
     /**
-     * STABLE SELECTOR for "New Post" button. Locating by href attribute instead of ID.
+     * Stable selector for the "New Post" button.
      */
     @FindBy(css = "a[href='/posts/create']")
     private WebElement newPostLink;
@@ -49,17 +52,17 @@ public class HomePage extends BasePage {
     @FindBy(xpath = "//app-post-modal//strong")
     private WebElement modalLikesCount;
 
-    // List of likes count elements on the home feed
-    @FindBy(xpath = "//app-post-detail//strong")
-    private List<WebElement> feedLikesCount;
-
-    // The main container of the opened modal (useful for waiting for the popup to exist)
+    // The main container of the opened modal
     @FindBy(css = ".post-modal")
     private WebElement postModalContainer;
 
-    // The first image in the feed (to ensure the feed is not empty/loaded)
+    // The first image in the feed
     @FindBy(css = "app-post-detail:nth-child(1) .post-feed-img")
     private WebElement firstPostImage;
+
+    // The like count of the first post in the feed
+    @FindBy(css = "app-post-detail:nth-child(1) strong")
+    private WebElement firstPostLikesCount;
 
     public HomePage(WebDriver driver) {
         super(driver);
@@ -68,18 +71,21 @@ public class HomePage extends BasePage {
     public boolean isUrlLoaded() {
         return isUrlPartLoaded(HOME_URL);
     }
+
     /**
-     * Clicks on the 'New Post' button.
+     * Clicks on the "New Post" button.
      */
     public void clickNewPost() {
         click(newPostLink);
     }
+
     /**
-     * Clicks on the profile link after ensuring it is clickable.
+     * Clicks on the profile link.
      */
     public void clickProfile() {
         click(profileLink);
     }
+
     /**
      * Clicks on the Logout button.
      */
@@ -88,13 +94,15 @@ public class HomePage extends BasePage {
     }
 
     /**
-     * Checks if the profile link is visible (proof of login).
+     * Checks if the profile link is visible.
      */
     public boolean isProfileLinkVisible() {
         return isElementVisible(profileLink);
     }
+
     /**
      * Returns the number of navigation links found via @FindAll.
+     *
      * @return navigation link count
      */
     public int getNavigationLinksCount() {
@@ -104,93 +112,85 @@ public class HomePage extends BasePage {
         } catch (Exception e) {
             return 0;
         }
+
         return navigationLinks.size();
     }
+
     /**
      * Checks if the user is correctly redirected after creating a post.
      */
     public boolean isRedirectedAfterPost() {
         System.out.println("Verifying redirection after post...");
-        // Wait until the URL contains either the home feed or the profile path
         return wait.until(ExpectedConditions.or(
                 ExpectedConditions.urlContains("/posts/all"),
                 ExpectedConditions.urlContains("/users/")
         ));
     }
 
-// --- Action Methods ---
     /**
-     * Opens the first post and waits for the heart icon to appear.
+     * Opens the first post and waits for the modal to appear.
      */
     public void openFirstPost() {
-        // Wait for images to be present
         wait.until(driver -> !postImages.isEmpty());
-
-        // Click the first available image
-        wait.until(ExpectedConditions.elementToBeClickable(postImages.get(0))).click();
-
-        // Wait for the like button to ensure modal is loaded
-        wait.until(ExpectedConditions.elementToBeClickable(modalLikeButton));
-    }
-    /**
-     * Closes the modal and waits for the heart icon to disappear.
-     */
-    public void closeModal() {
-        Actions action = new Actions(driver);
-        action.sendKeys(Keys.ESCAPE).perform();
-
-        // Wait until modal content is gone
-        wait.until(ExpectedConditions.invisibilityOf(modalLikeButton));
+        click(postImages.get(0));
+        wait.until(ExpectedConditions.visibilityOf(modalLikeButton));
     }
 
-// --- Data Extraction Methods ---
-
     /**
-     * Wait for the first post on the feed to be visible.
+     * Waits for the first post on the feed to be visible.
      */
     public void waitForPostToAppear() {
         wait.until(ExpectedConditions.visibilityOf(firstPostImage));
     }
 
     /**
-     * Wait for the modal image and the like count to be visible.
+     * Waits for the modal image and the like count to be visible.
      */
     public void waitForModalImageToLoad() {
-        // Wait for the modal container to appear
         wait.until(ExpectedConditions.visibilityOf(postModalContainer));
-        // Wait for the like count element to be visible inside the modal
         wait.until(ExpectedConditions.visibilityOf(modalLikesCount));
     }
+
     /**
-     * Extracts the number from the modal (e.g., from "7 likes" -> 7)
+     * Closes the modal and waits for the heart icon to disappear.
+     */
+    public void closeModal() {
+        Actions action = new Actions(driver);
+        action.sendKeys(Keys.ESCAPE).perform();
+        wait.until(ExpectedConditions.invisibilityOf(modalLikeButton));
+    }
+
+    /**
+     * Extracts the number from the modal text.
+     * Example: "7 likes" -> 7
      */
     public int getModalLikesCount() {
-        // Ensure the text is not empty before parsing
         wait.until(driver -> !modalLikesCount.getText().isEmpty());
         return Integer.parseInt(modalLikesCount.getText().replaceAll("[^0-9]", ""));
     }
+
     /**
-     * Gets numeric likes from the background feed.
+     * Gets the numeric like count from the first post in the feed.
      */
     public int getFeedLikesCount() {
-        // Wait for the list of feed likes to be present
-        wait.until(ExpectedConditions.visibilityOfAllElements(feedLikesCount));
-        String text = feedLikesCount.get(0).getText();
+        wait.until(ExpectedConditions.visibilityOf(firstPostLikesCount));
+        String text = firstPostLikesCount.getText();
         return Integer.parseInt(text.replaceAll("[^0-9]", ""));
     }
+
     /**
-     * Clicks the heart and waits for the like count to change from its initial value.
+     * Clicks the like button and waits for the modal like count to change.
+     *
+     * @param initialValue the like count before clicking
+     * @return the updated modal like count
      */
-    public void clickLikeAndVerifyChange(int initialValue) {
-        // 1. Click the heart icon
-        wait.until(ExpectedConditions.elementToBeClickable(modalLikeButton)).click();
-        System.out.println("DEBUG: Clicked the like button in modal.");
+    public int clickLikeAndWaitForCountChange(int initialValue) {
+        click(modalLikeButton);
+        wait.until(driver -> getModalLikesCount() != initialValue);
 
-        // 2. Wait until the text is NO LONGER the initial value
-        wait.until(ExpectedConditions.not(
-                ExpectedConditions.textToBePresentInElement(modalLikesCount, String.valueOf(initialValue))
-        ));
-        System.out.println("DEBUG: Modal count changed from " + initialValue);
+        int updatedLikes = getModalLikesCount();
+        System.out.println("DEBUG: Modal likes changed from " + initialValue + " to " + updatedLikes);
+
+        return updatedLikes;
     }
-
 }

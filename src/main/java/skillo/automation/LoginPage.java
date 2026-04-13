@@ -43,7 +43,6 @@ public class LoginPage extends BasePage {
         navigateTo(LOGIN_URL);
     }
 
-    // --- SMALL ACTIONS (DECOMPOSITION) ---
     /**
      * Types the given username into the username field.
      */
@@ -64,14 +63,16 @@ public class LoginPage extends BasePage {
     public void clickSignIn() {
         click(signInButton);
     }
+
     /**
      * Performs the complete login flow: enters credentials and clicks Sign In.
      */
     public void login(String username, String password) {
-        enterUsername(username); // Step 1: Username
-        enterPassword(password); // Step 2: Password
-        clickSignIn();           // Step 3: Click
+        enterUsername(username);
+        enterPassword(password);
+        clickSignIn();
     }
+
     /**
      * Returns the text of the error message.
      */
@@ -79,6 +80,7 @@ public class LoginPage extends BasePage {
         wait.until(ExpectedConditions.visibilityOf(errorMessage));
         return errorMessage.getText();
     }
+
     /**
      * Verifies if the Login page is loaded.
      */

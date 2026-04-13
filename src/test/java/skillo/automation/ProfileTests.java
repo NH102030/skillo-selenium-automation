@@ -1,17 +1,19 @@
 package skillo.automation;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class ProfileTests extends BaseTest{
+public class ProfileTests extends BaseTest {
+
     private LoginPage loginPage;
     private HomePage homePage;
     private ProfilePage profilePage;
+    private boolean postCreated;
 
-    @BeforeClass // Runs only once before all tests in this class
+    @BeforeClass
     public void setupProfileTest() {
-
         loginPage = new LoginPage(driver);
         homePage = new HomePage(driver);
         profilePage = new ProfilePage(driver);
@@ -24,7 +26,6 @@ public class ProfileTests extends BaseTest{
 
     @Test(priority = 1, description = "Verify that the user can navigate to their profile page")
     public void testNavigateToProfile() {
-
         homePage.clickProfile();
 
         System.out.println("Step: Verifying Profile URL...");
@@ -32,26 +33,50 @@ public class ProfileTests extends BaseTest{
         Assert.assertTrue(isProfileUrlLoaded, "ERROR: Profile URL path '/users/' was not found!");
     }
 
-    @Test(priority = 2, dependsOnMethods = "testNavigateToProfile", description = "Verify that the profile shows the correct post count")
-    public void testProfilePostCountVisibility() {
+    @Test(priority = 2, description = "Verify that the profile header count and visible gallery count increase after creating a new post")
+    public void testProfilePostCountIncreasesAfterCreatingPost() {
+        postCreated = false;
+        homePage.clickProfile();
+        Assert.assertTrue(profilePage.isUrlLoaded(), "ERROR: Could not open profile page.");
 
-        int postCount = profilePage.getPostCount();
-        System.out.println("Step: User has " + postCount + " posts.");
-        Assert.assertTrue(postCount >= 0, "ERROR: Could not retrieve post count!");
+        int initialDisplayedCount = profilePage.getDisplayedPostCount();
+        int initialGalleryCount = profilePage.getActualGalleryPostCount();
+
+        System.out.println("Step: Initial header count is " + initialDisplayedCount);
+        System.out.println("Step: Initial gallery count is " + initialGalleryCount);
+
+        homePage.clickNewPost();
+        Assert.assertTrue(profilePage.isPostFormLoaded(), "ERROR: Post form did not load.");
+
+        String imagePath = "src/test/resources/laleta.jpg";
+        profilePage.createPost(imagePath, "Profile count test");
+
+        boolean isRedirected = homePage.isRedirectedAfterPost();
+        Assert.assertTrue(isRedirected, "ERROR: The post was not created.");
+        postCreated = true;
+
+        homePage.clickProfile();
+        Assert.assertTrue(profilePage.isUrlLoaded(), "ERROR: Could not return to profile page.");
+
+        int updatedDisplayedCount = profilePage.getDisplayedPostCount();
+        int updatedGalleryCount = profilePage.getActualGalleryPostCount();
+
+        System.out.println("Step: Updated header count is " + updatedDisplayedCount);
+        System.out.println("Step: Updated gallery count is " + updatedGalleryCount);
+
+        Assert.assertEquals(updatedDisplayedCount, initialDisplayedCount + 1,
+                "ERROR: The profile header post count did not increase by 1 after creating a post.");
+
+        Assert.assertEquals(updatedGalleryCount, initialGalleryCount + 1,
+                "ERROR: The profile gallery count did not increase by 1 after creating a post.");
     }
 
-    @Test(priority = 3, dependsOnMethods = "testProfilePostCountVisibility", description = "Check if displayed post count matches the actual items in gallery")
-    public void testProfilePostCountIntegrity() {
-        System.out.println("Step: Checking data integrity on Profile Page.");
-        int displayedCount = profilePage.getDisplayedPostCount();
-        System.out.println("Step: UI says there are " + displayedCount + " posts.");
-
-        int actualCount = profilePage.getActualGalleryPostCount();
-        System.out.println("Step: Selenium found " + actualCount + " post elements in the gallery.");
-
-        // If they don't match, the test fails and shows the exact difference
-        Assert.assertEquals(actualCount, displayedCount,
-                "DATA INTEGRITY ERROR: The header says " + displayedCount +
-                        " posts, but the gallery actually contains " + actualCount + " items!");
+    @AfterMethod(alwaysRun = true)
+    public void cleanUpCreatedPost() {
+        if (postCreated) {
+            homePage.clickProfile();
+            profilePage.deleteLastPost();
+            postCreated = false;
+        }
     }
 }

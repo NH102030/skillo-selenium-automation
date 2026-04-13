@@ -5,7 +5,8 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
-import skillo.automation.BaseTest; // Използва твоя BaseTest
+import skillo.automation.BaseTest;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,24 +24,26 @@ public class ScreenshotListener implements ITestListener {
 
     @Override
     public void onTestFailure(ITestResult result) {
-        // 1. Get the test instancejava.io.File
+        // Get the test instance
         Object instance = result.getInstance();
-        if (!(instance instanceof BaseTest)) return;
+        if (!(instance instanceof BaseTest)) {
+            return;
+        }
 
-        // 2. Access the driver from BaseTest
+        // Access the driver from BaseTest
         WebDriver driver = ((BaseTest) instance).driver;
-        if (driver == null) return;
+        if (driver == null) {
+            return;
+        }
 
-        // 3. Formatting the filename
+        // Format the screenshot filename
         String timestamp = LocalDateTime.now().format(FORMATTER);
         String fileName = result.getName() + "_" + timestamp + ".png";
         Path screenshotsDir = Paths.get(SCREENSHOTS_DIR);
 
         try {
-            // 4. Create directory if it doesn't exist
             Files.createDirectories(screenshotsDir);
 
-            // 5. Capturing and saving the screenshot
             File srcFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
             Path destination = screenshotsDir.resolve(fileName);
             Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);

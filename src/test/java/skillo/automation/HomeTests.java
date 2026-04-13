@@ -22,30 +22,37 @@ public class HomeTests extends BaseTest {
         Assert.assertTrue(homePage.isUrlLoaded(), "Setup failed: User not logged in!");
     }
 
-    @Test(priority = 1, description = "Compare modal likes directly with feed likes using explicit wait")
-    public void testLikeSynchronizationVisualProof() {
-        // 1. Wait for feed to load
+    @Test(priority = 1, description = "Verify that like count is persisted after page refresh")
+    public void testLikePersistsAfterRefresh() {
         homePage.waitForPostToAppear();
 
-        // 2. Capture initial feed likes
-        int feedLikes = homePage.getFeedLikesCount();
-        System.out.println("DEBUG: [FEED] Initial likes: " + feedLikes);
+        int initialFeedLikes = homePage.getFeedLikesCount();
+        System.out.println("DEBUG: [FEED] Initial likes: " + initialFeedLikes);
 
-        // 3. Open post and wait for modal
         homePage.openFirstPost();
         homePage.waitForModalImageToLoad();
 
-        // 4. Click like and wait for the UI to update
-        homePage.clickLikeAndVerifyChange(feedLikes);
+        int initialModalLikes = homePage.getModalLikesCount();
+        System.out.println("DEBUG: [MODAL] Initial likes: " + initialModalLikes);
 
-        // 5. Capture what the modal shows
-        int modalLikes = homePage.getModalLikesCount();
-        System.out.println("DEBUG: [MODAL] Current likes after click: " + modalLikes);
+        Assert.assertEquals(initialModalLikes, initialFeedLikes,
+                "Initial mismatch: modal likes do not match feed likes.");
 
-        // 6. Compare directly.
-        Assert.assertEquals(modalLikes, feedLikes, "Data mismatch: Modal likes do not match Feed likes!");
+        int updatedModalLikes = homePage.clickLikeAndWaitForCountChange(initialModalLikes);
+        System.out.println("DEBUG: [MODAL] Updated likes: " + updatedModalLikes);
+
+        Assert.assertNotEquals(updatedModalLikes, initialModalLikes,
+                "The modal like count did not change after clicking the like button.");
 
         homePage.closeModal();
-    }
 
+        driver.navigate().refresh();
+        homePage.waitForPostToAppear();
+
+        int refreshedFeedLikes = homePage.getFeedLikesCount();
+        System.out.println("DEBUG: [FEED] Likes after refresh: " + refreshedFeedLikes);
+
+        Assert.assertEquals(refreshedFeedLikes, updatedModalLikes,
+                "The like count was not persisted correctly after page refresh.");
+    }
 }

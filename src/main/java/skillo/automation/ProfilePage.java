@@ -1,14 +1,17 @@
 package skillo.automation;
 
-import org.openqa.selenium.*;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import java.util.List;
+
 import java.io.File;
+import java.util.List;
 
 public class ProfilePage extends BasePage {
 
-     @FindBy(name = "caption")
+    @FindBy(name = "caption")
     private WebElement captionField;
 
     @FindBy(id = "create-post")
@@ -16,9 +19,6 @@ public class ProfilePage extends BasePage {
 
     @FindBy(css = ".image-preview")
     private WebElement imagePreview;
-
-    @FindBy(css = ".gallery-item")
-    private List<WebElement> myPosts;
 
     @FindBy(css = ".post-img img")
     private List<WebElement> profilePostsElements;
@@ -33,7 +33,7 @@ public class ProfilePage extends BasePage {
     @FindBy(xpath = "//*[contains(text(), 'Delete post')]")
     private WebElement profileDeleteButton;
 
-    // When "Delete" button is clicked, a CONFIRMATION appears
+    // When "Delete" button is clicked, a confirmation appears
     @FindBy(xpath = "//button[contains(@class, 'btn-primary') and normalize-space()='Yes']")
     private WebElement confirmYesButtonLocator;
 
@@ -51,7 +51,6 @@ public class ProfilePage extends BasePage {
     public boolean isUrlLoaded() {
         System.out.println("Step: Verifying if Profile URL is loaded...");
         try {
-            // This waits up to the default timeout for the URL to contain '/users/'
             return wait.until(ExpectedConditions.urlContains("/users/"));
         } catch (TimeoutException e) {
             System.out.println("Error: The URL does not contain '/users/'. Current URL is: " + driver.getCurrentUrl());
@@ -64,6 +63,7 @@ public class ProfilePage extends BasePage {
         if (!file.exists() || !file.isFile()) {
             throw new IllegalArgumentException("File not found: " + file.getAbsolutePath());
         }
+
         postFileInput.sendKeys(file.getAbsolutePath());
 
         wait.until(ExpectedConditions.visibilityOf(imagePreview));
@@ -88,79 +88,52 @@ public class ProfilePage extends BasePage {
         click(submitButton);
     }
 
-    public int getPostCount() {
-        System.out.println("Step: Checking posts count in profile...");
-        return myPosts.size();
-    }
-
     public void deleteLastPost() {
         System.out.println("Step: Deleting the last (oldest) post from profile...");
 
-        try {
-            // 1. Wait for the post list to be populated and not empty
-            wait.until(driver -> !profilePostsElements.isEmpty());
+        wait.until(driver -> !profilePostsElements.isEmpty());
 
-            // 2. Get the total count of all posts
-            int totalPosts = profilePostsElements.size();
+        int totalPosts = profilePostsElements.size();
+        WebElement oldestPost = profilePostsElements.get(totalPosts - 1);
 
-            // 3. The index of the last element is always (count - 1)
-            WebElement oldestPost = profilePostsElements.get(totalPosts - 1);
+        click(oldestPost);
 
-            // Before clicking, scroll to the element in case it is located further down the page
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", oldestPost);
+        wait.until(ExpectedConditions.visibilityOf(postModallElement));
 
-            // 4. Wait for the oldest post to be clickable, then click it
-            wait.until(ExpectedConditions.elementToBeClickable(oldestPost)).click();
+        click(profileDeleteButton);
+        click(confirmYesButtonLocator);
 
-            // 5. Deletion procedure
-            // Wait for the post modal to appear
-            wait.until(ExpectedConditions.visibilityOf(postModallElement));
+        wait.until(ExpectedConditions.invisibilityOf(postModallElement));
 
-            // Wait for the Delete button and click it
-            wait.until(ExpectedConditions.elementToBeClickable(profileDeleteButton)).click();
-
-            // Wait for the confirmation "Yes" button and click it
-            wait.until(ExpectedConditions.elementToBeClickable(confirmYesButtonLocator)).click();
-
-            // Wait for the modal to be fully hidden from the DOM
-            wait.until(ExpectedConditions.invisibilityOf(postModallElement));
-
-            System.out.println("Success: The oldest post (at index " + (totalPosts - 1) + ") was deleted.");
-
-        } catch (Exception e) {
-            System.out.println("Error while deleting the last post: " + e.getMessage());
-        }
+        System.out.println("Success: The oldest post (at index " + (totalPosts - 1) + ") was deleted.");
     }
 
     /**
-     * Extracts the numerical value from the 'X posts' text.
+     * Extracts the numerical value from the "X posts" text.
      * Example: "27 posts" -> returns 27 as an integer.
      */
     public int getDisplayedPostCount() {
-        // Wait until the text is visible to ensure page is loaded
         wait.until(ExpectedConditions.visibilityOf(postsCountText));
         String text = postsCountText.getText();
-
-        // Regular expression to strip everything except digits
         String numericText = text.replaceAll("[^0-9]", "");
 
-        if (numericText.isEmpty()) return 0;
+        if (numericText.isEmpty()) {
+            return 0;
+        }
+
         return Integer.parseInt(numericText);
     }
 
     /**
      * Returns the count of actual image elements rendered in the profile gallery.
-     * Includes a wait to ensure the gallery has time to load.
      */
     public int getActualGalleryPostCount() {
         try {
-            // Wait for at least one image to be present before counting
-            // This prevents counting 0 if the page is still rendering images
             wait.until(driver -> !profilePostsElements.isEmpty());
         } catch (TimeoutException e) {
-            // If no posts appear within the timeout, the count is effectively 0
             return 0;
         }
+
         return profilePostsElements.size();
     }
 
@@ -168,4 +141,12 @@ public class ProfilePage extends BasePage {
         return postsCountText;
     }
 
+    /**
+     * Uploads an image, fills the caption and submits the post form.
+     */
+    public void createPost(String imagePath, String caption) {
+        uploadImage(imagePath);
+        typeCaption(caption);
+        clickSubmit();
+    }
 }
