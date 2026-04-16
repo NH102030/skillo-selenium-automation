@@ -5,6 +5,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.JavascriptExecutor;
 
 import java.io.File;
 import java.util.List;
@@ -40,6 +41,9 @@ public class ProfilePage extends BasePage {
     // Locate the <li> element that contains the word "posts"
     @FindBy(xpath = "//li[contains(text(),'posts')]")
     private WebElement postsCountText;
+
+    @FindBy(xpath = "//*[normalize-space()='All']")
+    private WebElement allPostsTab;
 
     public ProfilePage(WebDriver driver) {
         super(driver);
@@ -110,7 +114,7 @@ public class ProfilePage extends BasePage {
 
     /**
      * Extracts the numerical value from the "X posts" text.
-     * Example: "27 posts" -> returns 27 as an integer.
+     * Example: "56 posts" -> returns 56 as an integer.
      */
     public int getDisplayedPostCount() {
         wait.until(ExpectedConditions.visibilityOf(postsCountText));
@@ -148,5 +152,44 @@ public class ProfilePage extends BasePage {
         uploadImage(imagePath);
         typeCaption(caption);
         clickSubmit();
+    }
+
+    /**
+     * Opens the "All" posts tab.
+     */
+    public void clickAllPostsTab() {
+        click(allPostsTab);
+    }
+
+    /**
+     * Scrolls down until the number of loaded posts stops growing.
+     *
+     * @param maxScrolls maximum number of scroll attempts
+     * @return the final number of loaded posts
+     */
+    public int loadVisiblePostsUntilCountStopsGrowing(int maxScrolls) {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        int previousCount = -1;
+        int currentCount = getActualGalleryPostCount();
+
+        for (int i = 0; i < maxScrolls; i++) {
+            if (currentCount == previousCount) {
+                break;
+            }
+
+            previousCount = currentCount;
+            js.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+
+            final int oldCount = previousCount;
+            try {
+                wait.until(driver -> getActualGalleryPostCount() > oldCount);
+            } catch (TimeoutException ignored) {
+            }
+
+            currentCount = getActualGalleryPostCount();
+        }
+
+        return currentCount;
     }
 }

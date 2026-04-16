@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="Skillo Automation Suite" verbose="2" parallel="none" preserve-order="true">
+<suite name="Skillo Automation Suite"
+       verbose="2"
+       parallel="none"
+       preserve-order="true">
 
     <listeners>
-        <listener class-name="skillo.automation.listeners.ScreenshotListener" />
+        <listener class-name="skillo.automation.listeners.ScreenshotListener"/>
     </listeners>
 
-    <test name="Regression Tests" preserve-order="true">
+    <test name="Full Regression Suite" preserve-order="true">
         <classes>
             <class name="skillo.automation.LoginTests"/>
             <class name="skillo.automation.PostTests"/>
             <class name="skillo.automation.ProfileTests"/>
             <class name="skillo.automation.HomeTests"/>
+            <class name="skillo.automation.SearchTests"/>
         </classes>
     </test>
 

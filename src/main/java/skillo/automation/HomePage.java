@@ -7,6 +7,7 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.FindAll;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.By;
 
 import java.util.List;
 
@@ -63,6 +64,9 @@ public class HomePage extends BasePage {
     // The like count of the first post in the feed
     @FindBy(css = "app-post-detail:nth-child(1) strong")
     private WebElement firstPostLikesCount;
+
+    @FindBy(css = "input[placeholder='Search']")
+    private WebElement searchInput;
 
     public HomePage(WebDriver driver) {
         super(driver);
@@ -192,5 +196,22 @@ public class HomePage extends BasePage {
         System.out.println("DEBUG: Modal likes changed from " + initialValue + " to " + updatedLikes);
 
         return updatedLikes;
+    }
+
+    /**
+     * Types a username in the search field.
+     */
+    public void searchUser(String username) {
+        typeText(searchInput, username);
+    }
+
+    /**
+     * Opens the searched user from the search dropdown.
+     */
+    public void openSearchedUser(String username) {
+        WebElement searchedUserResult = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("(//*[normalize-space()='" + username + "' and not(self::input)])[1]")
+        ));
+        click(searchedUserResult);
     }
 }
